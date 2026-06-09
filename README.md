@@ -1,10 +1,7 @@
-# GymPro - Hướng dẫn chạy dự án
+# GymPro
 
 ## Yêu cầu
 
-- **Node.js** >= 18
-- **MongoDB** đang chạy local (port 27017)
-- **npm** >= 9
 
 ---
 
