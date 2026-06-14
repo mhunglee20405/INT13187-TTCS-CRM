@@ -11,6 +11,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -48,12 +49,29 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
     );
 
     // Revenue this month (members who got membership this month)
-    const membersWithMembership = await Member.find({ membershipStartDate: { $gte: monthStart } })
-      .populate("currentMembershipId", "urPrice");
-    const revenueThisMonth = membersWithMembership.reduce((sum, m) => {
-      const ms = m.currentMembershipId as unknown as { urPrice: number } | null;
-      return sum + (ms?.urPrice || 0);
-    }, 0);
+    const revenueResult = await Member.aggregate([
+      {
+        $unwind: "$membershipHistory",
+      },
+      {
+        $match: {
+          "membershipHistory.purchasedAt": {
+            $gte: monthStart,
+            $lt: monthEnd,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: "$membershipHistory.price",
+          },
+        },
+      },
+    ]);
+
+const revenueThisMonth = revenueResult[0]?.totalRevenue || 0;
 
     // Checkins last 7 days
     const checkinTrend = [];

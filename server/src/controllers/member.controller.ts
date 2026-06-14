@@ -143,6 +143,7 @@ export const getMemberById = async (req: AuthRequest, res: Response): Promise<vo
               urPrice: membership.urPrice,
             }
           : null,
+        membershipHistory: member.membershipHistory,
         membershipStartDate: member.membershipStartDate,
         membershipEndDate: member.membershipEndDate,
         lastCheckinDate: member.lastCheckinDate,
@@ -158,8 +159,9 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
     const { name, phone, birthday, mail } = req.body;
 
     const phoneRegex = /^\d{11}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
-    if (!name || !phone || !phoneRegex.test(phone)) {
+    if (!name || !phone || !phoneRegex.test(phone) || !mail || !emailRegex.test(mail)) {
       res.status(400).json({
         success: false,
         message: "Tên hoặc số điện thoại của bạn không hợp lệ!",
@@ -167,6 +169,7 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
           !name && { field: "name", message: "Họ tên không được để trống" },
           !phone && { field: "phone", message: "Số điện thoại không được để trống" },
           phone && !phoneRegex.test(phone) && { field: "phone", message: "Số điện thoại phải bao gồm đúng 11 chữ số" },
+          mail && !emailRegex.test(mail) && { field: "mail", message: "Email không đúng định dạng", },
         ].filter(Boolean),
       });
       return;
@@ -382,6 +385,12 @@ export const addMembership = async (req: AuthRequest, res: Response): Promise<vo
     member.currentMembershipId = membership._id as mongoose.Types.ObjectId;
 
     const now = new Date();
+    member.membershipHistory ??= [];
+    member.membershipHistory.push({
+      membershipId: membership._id as mongoose.Types.ObjectId,
+      price: membership.urPrice,
+      purchasedAt: now,
+    });
     const endDate = new Date(now);
     endDate.setMonth(endDate.getMonth() + membership.durationMonths);
     member.membershipStartDate = now;
@@ -401,6 +410,7 @@ export const addMembership = async (req: AuthRequest, res: Response): Promise<vo
         member: {
           memberId: member.memberId,
           name: member.name,
+          membershipHistory: member.membershipHistory,
           pointBefore,
           pointAfter: member.point,
           obtainPointBefore,

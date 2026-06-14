@@ -111,8 +111,8 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-white/10 text-xs text-gray-500 space-y-1">
-            <p>🔑 Admin: <span className="text-gray-400">admin / admin123</span></p>
-            <p>🔑 Lễ tân: <span className="text-gray-400">letanvien / letanvien123</span></p>
+            {/* <p>🔑 Admin: <span className="text-gray-400">admin / admin123</span></p> */}
+            <p>🔑 Lễ tân: <span className="text-gray-400">letan / letan123</span></p>
           </div>
         </div>
       </div>
