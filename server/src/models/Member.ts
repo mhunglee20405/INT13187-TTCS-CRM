@@ -12,6 +12,7 @@ export interface IMember extends Document {
   totalExpense: number;
   tierId: mongoose.Types.ObjectId;
   currentMembershipId?: mongoose.Types.ObjectId;
+  membershipHistory: { membershipId: mongoose.Types.ObjectId; price: number; purchasedAt: Date; }[];
   membershipStartDate?: Date;
   membershipEndDate?: Date;
   lastCheckinDate?: Date;
@@ -32,6 +33,24 @@ const MemberSchema: Schema = new Schema(
     totalExpense: { type: Number, default: 0 },
     tierId: { type: Schema.Types.ObjectId, ref: "Tier", required: true },
     currentMembershipId: { type: Schema.Types.ObjectId, ref: "Membership", default: null },
+    membershipHistory: [
+      {
+        membershipId: {
+          type: Schema.Types.ObjectId,
+          ref: "Membership",
+          required: true,
+        },
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        purchasedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     membershipStartDate: { type: Date, default: null },
     membershipEndDate: { type: Date, default: null },
     lastCheckinDate: { type: Date, default: null },

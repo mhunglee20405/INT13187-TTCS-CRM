@@ -7,6 +7,7 @@ import { toast } from "../../components/ui/Toast";
 export default function MemberFormPage({ editData }: { editData?: Record<string, unknown> }) {
   const navigate = useNavigate();
   const isEdit = !!editData;
+  const today = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState({
     name: (editData?.name as string) || "",
     phone: (editData?.phone as string) || "",
@@ -32,8 +33,15 @@ export default function MemberFormPage({ editData }: { editData?: Record<string,
       }
       navigate("/members");
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e.response?.data?.message || "Có lỗi xảy ra");
+      const e = err as { response?: { data?: { message?: string; errors?: {
+          field: string;
+          message: string;
+        }[]; } } };
+      toast.error(
+        e.response?.data?.errors?.[0]?.message ||
+        e.response?.data?.message ||
+        "Có lỗi xảy ra"
+      );
     } finally {
       setLoading(false);
     }
@@ -65,7 +73,7 @@ export default function MemberFormPage({ editData }: { editData?: Record<string,
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">Ngày sinh</label>
-              <input name="birthday" type="date" value={form.birthday} onChange={handleChange} className="input-field" required/>
+              <input name="birthday" type="date" value={form.birthday} onChange={handleChange} className="input-field" required max={today}/>
             </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => navigate("/members")} className="btn-secondary flex-1">
