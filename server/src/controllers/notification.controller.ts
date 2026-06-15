@@ -3,7 +3,10 @@ import Notification from "../models/Notification";
 import Member from "../models/Member";
 import { AuthRequest } from "../middlewares/authenticateToken";
 
-export const sendNotification = async (req: AuthRequest, res: Response): Promise<void> => {
+export const sendNotification = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { title, content, targetType, targetValue } = req.body;
 
@@ -53,7 +56,10 @@ export const sendNotification = async (req: AuthRequest, res: Response): Promise
   }
 };
 
-export const getNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getNotifications = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page as string);
@@ -68,25 +74,74 @@ export const getNotifications = async (req: AuthRequest, res: Response): Promise
       Notification.countDocuments(),
     ]);
 
+    const memberIds = notifications
+      .filter((n) => n.targetType === "member" && n.targetValue)
+      .map((n) => n.targetValue as string)
+      .filter((id) => /^[a-fA-F0-9]{24}$/.test(id)); // Đảm bảo đúng định dạng ObjectId
+
+    const tierIds = notifications
+      .filter((n) => n.targetType === "tier" && n.targetValue)
+      .map((n) => n.targetValue as string);
+
+    const members = await Member.find({ _id: { $in: memberIds } }, "_id name");
+    const { default: Tier } = await import("../models/Tier");
+    const tiers = await Tier.find(
+      { tierId: { $in: tierIds } },
+      "tierId tierName",
+    );
+
+    // Tạo Map để tra cứu siêu tốc
+    const memberMap = new Map(members.map((m) => [m._id.toString(), m.name]));
+    const tierMap = new Map(tiers.map((t) => [t.tierId, t.tierName]));
+    // --- KẾT THÚC XỬ LÝ ID ---
+
     res.json({
       success: true,
       message: "Lấy lịch sử gửi thông báo thành công",
       data: {
         notifications: notifications.map((n) => {
-          const user = n.sentBy as unknown as { username: string; role: string };
+          const user = n.sentBy as unknown as {
+            username: string;
+            role: string;
+          };
+
+          // Phân loại tên hiển thị rõ ràng dựa theo yêu cầu của bạn
+          let targetName = "";
+          if (n.targetType === "all") {
+            targetName = "All";
+          } else if (n.targetType === "absent_over_5_days") {
+            targetName = "Vắng > 5 ngày";
+          } else if (n.targetType === "tier") {
+            const tName = tierMap.get(n.targetValue || "");
+            targetName = tName
+              ? `Hạng thẻ: ${tName}`
+              : `Hạng thẻ ẩn (${n.targetValue})`;
+          } else if (n.targetType === "member") {
+            const mName = memberMap.get(n.targetValue || "");
+            targetName = mName ? mName : "Thành viên (đã xóa)";
+          } else {
+            targetName = n.targetType;
+          }
+
           return {
             notificationId: n._id,
             title: n.title,
             content: n.content,
             targetType: n.targetType,
             targetValue: n.targetValue,
+            targetName: targetName,
             receiverCount: n.receiverIds.length,
             type: n.type,
             sentBy: user ? { username: user.username, role: user.role } : null,
             createdAt: n.createdAt,
           };
         }),
-        pagination: { page: pageNum, limit: limitNum, totalItems: total, totalPages: Math.ceil(total / limitNum) },
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          totalItems: total,
+          totalPages: Math.ceil(total / limitNum),
+        },
       },
     });
   } catch {
