@@ -106,13 +106,19 @@ export default function LoginPage() {
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Đang đăng nhập...
                 </span>
-              ) : "Đăng nhập"}
+              ) : (
+                "Đăng nhập"
+              )}
             </button>
           </form>
 
           <div className="mt-6 pt-4 border-t border-white/10 text-xs text-gray-500 space-y-1">
-            {/* <p>🔑 Admin: <span className="text-gray-400">admin / admin123</span></p> */}
-            <p>🔑 Lễ tân: <span className="text-gray-400">letan / letan123</span></p>
+            <p>
+              🔑 Admin: <span className="text-gray-400">admin / admin123</span>
+            </p>
+            <p>
+              🔑 Lễ tân: <span className="text-gray-400">letan / letan123</span>
+            </p>
           </div>
         </div>
       </div>
