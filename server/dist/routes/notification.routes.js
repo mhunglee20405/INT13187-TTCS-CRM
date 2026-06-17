@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const notification_controller_1 = require("../controllers/notification.controller");
+const authenticateToken_1 = require("../middlewares/authenticateToken");
+const authorizeRoles_1 = require("../middlewares/authorizeRoles");
+const router = (0, express_1.Router)();
+router.post("/send", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), notification_controller_1.sendNotification);
+router.get("/", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), notification_controller_1.getNotifications);
+exports.default = router;

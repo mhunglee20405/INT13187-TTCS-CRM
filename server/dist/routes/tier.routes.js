@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const tier_controller_1 = require("../controllers/tier.controller");
+const authenticateToken_1 = require("../middlewares/authenticateToken");
+const authorizeRoles_1 = require("../middlewares/authorizeRoles");
+const router = (0, express_1.Router)();
+router.get("/", authenticateToken_1.authenticateToken, tier_controller_1.getTiers);
+router.get("/statistics", authenticateToken_1.authenticateToken, tier_controller_1.getTierStatistics);
+router.get("/:id", authenticateToken_1.authenticateToken, tier_controller_1.getTierById);
+router.post("/", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), tier_controller_1.createTier);
+router.put("/:id", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), tier_controller_1.updateTier);
+router.delete("/:id", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), tier_controller_1.deleteTier);
+exports.default = router;
