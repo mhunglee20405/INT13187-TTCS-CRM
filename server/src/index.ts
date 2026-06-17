@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
 
 import authRoutes from "./routes/auth.routes";
@@ -13,10 +12,14 @@ import notificationRoutes from "./routes/notification.routes";
 import notificationTemplateRoutes from "./routes/notificationTemplate.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("❌ Missing MONGODB_URI environment variable");
+  process.exit(1);
+}
 
 // Middleware
 app.use(
@@ -25,6 +28,7 @@ app.use(
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,18 +59,21 @@ app.get("/api/health", (_, res) => {
 
 // 404
 app.use((_, res) => {
-  res
-    .status(404)
-    .json({ success: false, message: "API không tồn tại", data: null });
+  res.status(404).json({
+    success: false,
+    message: "API không tồn tại",
+    data: null,
+  });
 });
 
 // Connect DB & Start
 mongoose
-  .connect(process.env.MONGODB_URI as string)
+  .connect(MONGODB_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+
+    app.listen(Number(PORT), "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch((err) => {

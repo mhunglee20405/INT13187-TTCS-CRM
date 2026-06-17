@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const gift_controller_1 = require("../controllers/gift.controller");
+const authenticateToken_1 = require("../middlewares/authenticateToken");
+const authorizeRoles_1 = require("../middlewares/authorizeRoles");
+const router = (0, express_1.Router)();
+router.get("/", authenticateToken_1.authenticateToken, gift_controller_1.getGifts);
+router.post("/", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), gift_controller_1.createGift);
+router.put("/:id", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), gift_controller_1.updateGift);
+router.delete("/:id", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), gift_controller_1.deleteGift);
+router.post("/redeem", authenticateToken_1.authenticateToken, gift_controller_1.redeemGift);
+router.get("/redemptions/history", authenticateToken_1.authenticateToken, (0, authorizeRoles_1.authorizeRoles)("admin"), gift_controller_1.getRedemptionHistory);
+exports.default = router;
