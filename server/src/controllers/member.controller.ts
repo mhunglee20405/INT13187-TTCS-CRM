@@ -27,7 +27,28 @@ const generateMemberId = async (): Promise<string> => {
   return `MB${String(count + 1).padStart(3, "0")}`;
 };
 
-export const getMembers = async (req: AuthRequest, res: Response): Promise<void> => {
+const expireMembershipIfNeeded = async (member: any) => {
+  if (!member || !member.currentMembershipId || !member.membershipEndDate) {
+    return false;
+  }
+
+  const now = new Date();
+  if (member.membershipEndDate > now) {
+    return false;
+  }
+
+  member.currentMembershipId = null;
+  member.membershipStartDate = null;
+  member.membershipEndDate = null;
+  await member.save();
+
+  return true;
+};
+
+export const getMembers = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { keyword = "", page = 1, limit = 10 } = req.query;
     const pageNum = parseInt(page as string);
@@ -55,6 +76,10 @@ export const getMembers = async (req: AuthRequest, res: Response): Promise<void>
       Member.countDocuments(searchQuery),
     ]);
 
+    for (const member of members) {
+      await expireMembershipIfNeeded(member);
+    }
+
     const formatted = members.map((m) => {
       const tier = m.tierId as unknown as { tierId: string; tierName: string };
       const membership = m.currentMembershipId as unknown as {
@@ -74,7 +99,10 @@ export const getMembers = async (req: AuthRequest, res: Response): Promise<void>
         totalExpense: m.totalExpense,
         tier: tier ? { tierId: tier.tierId, tierName: tier.tierName } : null,
         currentMembership: membership
-          ? { membershipId: membership.membershipId, membershipName: membership.membershipName }
+          ? {
+              membershipId: membership.membershipId,
+              membershipName: membership.membershipName,
+            }
           : null,
         membershipStartDate: m.membershipStartDate,
         membershipEndDate: m.membershipEndDate,
@@ -101,18 +129,35 @@ export const getMembers = async (req: AuthRequest, res: Response): Promise<void>
   }
 };
 
-export const getMemberById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMemberById = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const member = await Member.findById(req.params.id)
       .populate("tierId", "tierId tierName")
-      .populate("currentMembershipId", "membershipId membershipName durationMonths urPrice");
+      .populate(
+        "currentMembershipId",
+        "membershipId membershipName durationMonths urPrice",
+      );
 
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
 
-    const tier = member.tierId as unknown as { tierId: string; tierName: string };
+    await expireMembershipIfNeeded(member);
+
+    const tier = member.tierId as unknown as {
+      tierId: string;
+      tierName: string;
+    };
     const membership = member.currentMembershipId as unknown as {
       membershipId: string;
       membershipName: string;
@@ -154,22 +199,42 @@ export const getMemberById = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-export const createMember = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createMember = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { name, phone, birthday, mail } = req.body;
 
     const phoneRegex = /^\d{10}$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!name || !phone || !phoneRegex.test(phone) || !mail || !emailRegex.test(mail)) {
+
+    if (
+      !name ||
+      !phone ||
+      !phoneRegex.test(phone) ||
+      !mail ||
+      !emailRegex.test(mail)
+    ) {
       res.status(400).json({
         success: false,
         message: "Tên hoặc số điện thoại của bạn không hợp lệ!",
         errors: [
           !name && { field: "name", message: "Họ tên không được để trống" },
-          !phone && { field: "phone", message: "Số điện thoại không được để trống" },
-          phone && !phoneRegex.test(phone) && { field: "phone", message: "Số điện thoại phải bao gồm đúng 10 chữ số" },
-          mail && !emailRegex.test(mail) && { field: "mail", message: "Email không đúng định dạng", },
+          !phone && {
+            field: "phone",
+            message: "Số điện thoại không được để trống",
+          },
+          phone &&
+            !phoneRegex.test(phone) && {
+              field: "phone",
+              message: "Số điện thoại phải bao gồm đúng 11 chữ số",
+            },
+          mail &&
+            !emailRegex.test(mail) && {
+              field: "mail",
+              message: "Email không đúng định dạng",
+            },
         ].filter(Boolean),
       });
       return;
@@ -192,7 +257,13 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
     // Get Bronze tier as default
     const bronzeTier = await Tier.findOne({ tierId: "TIER_BRONZE" });
     if (!bronzeTier) {
-      res.status(500).json({ success: false, message: "Không tìm thấy hạng Bronze mặc định", data: null });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Không tìm thấy hạng Bronze mặc định",
+          data: null,
+        });
       return;
     }
 
@@ -232,13 +303,22 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
-export const updateMember = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateMember = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { name, phone, birthday, mail } = req.body;
 
     const member = await Member.findById(req.params.id);
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
 
@@ -285,29 +365,55 @@ export const updateMember = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
-export const deleteMember = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteMember = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const member = await Member.findByIdAndDelete(req.params.id);
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
-    res.json({ success: true, message: "Xóa thành viên thành công", data: { id: req.params.id } });
+    res.json({
+      success: true,
+      message: "Xóa thành viên thành công",
+      data: { id: req.params.id },
+    });
   } catch {
     res.status(500).json({ success: false, message: "Lỗi server", data: null });
   }
 };
 
-export const checkinMember = async (req: AuthRequest, res: Response): Promise<void> => {
+export const checkinMember = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const member = await Member.findById(req.params.id);
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
     // Check if point already added today
@@ -359,19 +465,37 @@ export const checkinMember = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-export const addMembership = async (req: AuthRequest, res: Response): Promise<void> => {
+export const addMembership = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { membershipId } = req.body;
-    const member = await Member.findById(req.params.id).populate("tierId", "tierId tierName");
+    const member = await Member.findById(req.params.id).populate(
+      "tierId",
+      "tierId tierName",
+    );
 
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
 
     const membership = await Membership.findById(membershipId);
     if (!membership) {
-      res.status(404).json({ success: false, message: "Không tìm thấy gói tập", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy gói tập",
+          data: null,
+        });
       return;
     }
 
@@ -397,7 +521,10 @@ export const addMembership = async (req: AuthRequest, res: Response): Promise<vo
     member.membershipEndDate = endDate;
 
     // Update tier
-    const oldTier = member.tierId as unknown as { tierId: string; tierName: string };
+    const oldTier = member.tierId as unknown as {
+      tierId: string;
+      tierName: string;
+    };
     const newTier = await determineTier(member.totalExpense);
     member.tierId = newTier._id as mongoose.Types.ObjectId;
 

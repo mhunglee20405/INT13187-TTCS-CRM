@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -18,7 +19,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -40,7 +46,8 @@ app.get("/api/health", (_, res) => {
     data: {
       service: "Gym Membership Management API",
       status: "OK",
-      database: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+      database:
+        mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
       timestamp: new Date().toISOString(),
     },
   });
@@ -48,7 +55,9 @@ app.get("/api/health", (_, res) => {
 
 // 404
 app.use((_, res) => {
-  res.status(404).json({ success: false, message: "API không tồn tại", data: null });
+  res
+    .status(404)
+    .json({ success: false, message: "API không tồn tại", data: null });
 });
 
 // Connect DB & Start

@@ -26,60 +26,189 @@ export const getGifts = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const createGift = async (req: Request, res: Response): Promise<void> => {
+export const createGift = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-    const { giftId, giftName, requiredPoint, quantity, description } = req.body;
+    let { giftId, giftName, requiredPoint, quantity, description } = req.body;
+
+    // --- BẮT ĐẦU VALIDATION BACKEND ---
+    if (!giftId || !giftId.trim() || !giftName || !giftName.trim()) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Thiếu mã quà hoặc tên quà",
+          data: null,
+        });
+      return;
+    }
+    // Điểm cần đổi bắt buộc là số nguyên dương (> 0)
+    if (!Number.isInteger(requiredPoint) || requiredPoint <= 0) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Điểm cần đổi phải là số nguyên dương (> 0)",
+          data: null,
+        });
+      return;
+    }
+    // Số lượng bắt buộc là số nguyên không âm (>= 0)
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Số lượng phải là số nguyên không âm (>= 0)",
+          data: null,
+        });
+      return;
+    }
+
+    // Chuẩn hóa giftId: xóa khoảng trắng dư thừa và in hoa
+    giftId = giftId.trim().toUpperCase();
+    // --- KẾT THÚC VALIDATION ---
+
     const existing = await Gift.findOne({ giftId });
     if (existing) {
-      res.status(400).json({ success: false, message: "Mã quà đã tồn tại", data: null });
+      res
+        .status(400)
+        .json({ success: false, message: "Mã quà đã tồn tại", data: null });
       return;
     }
-    const gift = await Gift.create({ giftId, giftName, requiredPoint, quantity, description });
-    res.status(201).json({ success: true, message: "Thêm quà tặng thành công", data: gift });
+    const gift = await Gift.create({
+      giftId,
+      giftName,
+      requiredPoint,
+      quantity,
+      description,
+    });
+    res
+      .status(201)
+      .json({ success: true, message: "Thêm quà tặng thành công", data: gift });
   } catch {
     res.status(500).json({ success: false, message: "Lỗi server", data: null });
   }
 };
 
-export const updateGift = async (req: Request, res: Response): Promise<void> => {
+export const updateGift = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-    const gift = await Gift.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!gift) {
-      res.status(404).json({ success: false, message: "Không tìm thấy quà tặng", data: null });
+    const { requiredPoint, quantity, giftId } = req.body;
+
+    // --- BẮT ĐẦU VALIDATION CHO UPDATE ---
+    if (
+      requiredPoint !== undefined &&
+      (!Number.isInteger(requiredPoint) || requiredPoint <= 0)
+    ) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Điểm cần đổi phải là số nguyên dương",
+          data: null,
+        });
       return;
     }
-    res.json({ success: true, message: "Cập nhật quà tặng thành công", data: gift });
+    if (
+      quantity !== undefined &&
+      (!Number.isInteger(quantity) || quantity < 0)
+    ) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Số lượng phải là số nguyên không âm",
+          data: null,
+        });
+      return;
+    }
+    if (giftId) {
+      req.body.giftId = giftId.trim().toUpperCase();
+    }
+    // --- KẾT THÚC VALIDATION ---
+
+    const gift = await Gift.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!gift) {
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy quà tặng",
+          data: null,
+        });
+      return;
+    }
+    res.json({
+      success: true,
+      message: "Cập nhật quà tặng thành công",
+      data: gift,
+    });
   } catch {
     res.status(500).json({ success: false, message: "Lỗi server", data: null });
   }
 };
 
-export const deleteGift = async (req: Request, res: Response): Promise<void> => {
+export const deleteGift = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const gift = await Gift.findByIdAndDelete(req.params.id);
     if (!gift) {
-      res.status(404).json({ success: false, message: "Không tìm thấy quà tặng", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy quà tặng",
+          data: null,
+        });
       return;
     }
-    res.json({ success: true, message: "Xóa quà tặng thành công", data: { id: req.params.id } });
+    res.json({
+      success: true,
+      message: "Xóa quà tặng thành công",
+      data: { id: req.params.id },
+    });
   } catch {
     res.status(500).json({ success: false, message: "Lỗi server", data: null });
   }
 };
 
-export const redeemGift = async (req: AuthRequest, res: Response): Promise<void> => {
+export const redeemGift = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { memberId, giftId } = req.body;
 
     const member = await Member.findById(memberId);
     if (!member) {
-      res.status(404).json({ success: false, message: "Không tìm thấy thành viên", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy thành viên",
+          data: null,
+        });
       return;
     }
 
     const gift = await Gift.findById(giftId);
     if (!gift || !gift.isActive) {
-      res.status(404).json({ success: false, message: "Không tìm thấy quà tặng", data: null });
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "Không tìm thấy quà tặng",
+          data: null,
+        });
       return;
     }
 
@@ -115,7 +244,6 @@ export const redeemGift = async (req: AuthRequest, res: Response): Promise<void>
       redeemedBy: req.user?.userId,
     });
 
-    // Auto notification
     await Notification.create({
       title: "Đổi quà thành công",
       content: `Bạn đã đổi thành công quà: ${gift.giftName}. Số điểm đã sử dụng: ${gift.requiredPoint}.`,
@@ -151,7 +279,10 @@ export const redeemGift = async (req: AuthRequest, res: Response): Promise<void>
   }
 };
 
-export const getRedemptionHistory = async (req: Request, res: Response): Promise<void> => {
+export const getRedemptionHistory = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page as string);
@@ -175,7 +306,10 @@ export const getRedemptionHistory = async (req: Request, res: Response): Promise
         history: history.map((h) => {
           const m = h.memberId as unknown as { memberId: string; name: string };
           const g = h.giftId as unknown as { giftId: string; giftName: string };
-          const u = h.redeemedBy as unknown as { username: string; role: string };
+          const u = h.redeemedBy as unknown as {
+            username: string;
+            role: string;
+          };
           return {
             redemptionId: h._id,
             member: m ? { memberId: m.memberId, name: m.name } : null,
@@ -185,7 +319,12 @@ export const getRedemptionHistory = async (req: Request, res: Response): Promise
             createdAt: h.createdAt,
           };
         }),
-        pagination: { page: pageNum, limit: limitNum, totalItems: total, totalPages: Math.ceil(total / limitNum) },
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          totalItems: total,
+          totalPages: Math.ceil(total / limitNum),
+        },
       },
     });
   } catch {

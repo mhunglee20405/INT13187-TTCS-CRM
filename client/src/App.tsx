@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute, AdminRoute, GuestRoute } from "./components/routing/Guards";
+import {
+  ProtectedRoute,
+  AdminRoute,
+  GuestRoute,
+} from "./components/routing/Guards";
 import ToastContainer from "./components/ui/Toast";
 
 import LoginPage from "./pages/auth/LoginPage";
