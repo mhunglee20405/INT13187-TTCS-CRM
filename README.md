@@ -1,12 +1,6 @@
 # GymPro - Hướng dẫn chạy dự án
 
-## Yêu cầu
 
-- **Node.js** >= 18
-- **MongoDB** đang chạy local (port 27017)
-- **npm** >= 9
-
----
 
 ## Cấu trúc thư mục
 
@@ -46,9 +40,6 @@ Get-Service -Name MongoDB
 Start-Service -Name MongoDB
 ```
 
-**Cách 2** — Docker:
-```powershell
-docker run -d -p 27017:27017 --name gym-mongo mongo:latest
 ```
 
 **Cách 3** — MongoDB Atlas: cập nhật `MONGODB_URI` trong `server/.env`
@@ -68,7 +59,7 @@ Lệnh này sẽ tạo:
 - ✅ **Gifts**: 4 quà tặng mẫu
 - ✅ **Users**:
   - Admin: `admin` / `admin123`
-  - Lễ tân: `letanvien` / `letanvien123`
+  - Lễ tân: `letan` / `letan123`
 
 ---
 
