@@ -10,6 +10,7 @@ import { toast } from "../../components/ui/Toast";
 import { useAuth } from "../../contexts/AuthContext";
 
 type Tab = "gifts" | "redeem" | "history";
+
 const emptyGiftForm = {
   giftId: "",
   giftName: "",
@@ -20,25 +21,31 @@ const emptyGiftForm = {
 
 export default function GiftsPage() {
   const { isAdmin } = useAuth();
+
   const [activeTab, setActiveTab] = useState<Tab>("gifts");
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [history, setHistory] = useState<GiftRedemption[]>([]);
+
   const [histPagination, setHistPagination] = useState<PaginationInfo>({
     page: 1,
     limit: 20,
     totalItems: 0,
     totalPages: 1,
   });
+
   const [loading, setLoading] = useState(true);
+
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [showRedeemModal, setShowRedeemModal] = useState(false);
+
   const [editGift, setEditGift] = useState<Gift | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const [giftForm, setGiftForm] = useState(emptyGiftForm);
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Redeem state
   const [memberSearch, setMemberSearch] = useState("");
   const [memberResults, setMemberResults] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -47,6 +54,7 @@ export default function GiftsPage() {
 
   const fetchGifts = useCallback(async () => {
     setLoading(true);
+
     try {
       const res = await giftApi.getAll();
       setGifts(res.data.data);
@@ -59,7 +67,11 @@ export default function GiftsPage() {
 
   const fetchHistory = useCallback(async (page = 1) => {
     try {
-      const res = await giftApi.getRedemptionHistory({ page, limit: 20 });
+      const res = await giftApi.getRedemptionHistory({
+        page,
+        limit: 20,
+      });
+
       setHistory(res.data.data.history);
       setHistPagination(res.data.data.pagination);
     } catch {
@@ -70,8 +82,11 @@ export default function GiftsPage() {
   useEffect(() => {
     fetchGifts();
   }, [fetchGifts]);
+
   useEffect(() => {
-    if (activeTab === "history" && isAdmin()) fetchHistory();
+    if (activeTab === "history" && isAdmin()) {
+      fetchHistory();
+    }
   }, [activeTab, fetchHistory, isAdmin]);
 
   const openCreate = () => {
@@ -79,8 +94,10 @@ export default function GiftsPage() {
     setGiftForm(emptyGiftForm);
     setShowGiftModal(true);
   };
+
   const openEdit = (g: Gift) => {
     setEditGift(g);
+
     setGiftForm({
       giftId: g.giftId,
       giftName: g.giftName,
@@ -88,13 +105,13 @@ export default function GiftsPage() {
       quantity: g.quantity,
       description: g.description || "",
     });
+
     setShowGiftModal(true);
   };
 
   const handleSaveGift = async () => {
     const { giftId, giftName, requiredPoint, quantity } = giftForm;
 
-    // --- BẮT ĐẦU VALIDATION FRONTEND ---
     if (!giftId || !giftId.trim()) {
       toast.error("Vui lòng nhập mã quà.");
       return;
@@ -114,9 +131,9 @@ export default function GiftsPage() {
       toast.error("Số lượng không được âm và phải là số nguyên.");
       return;
     }
-    // --- KẾT THÚC VALIDATION FRONTEND ---
 
     setSaving(true);
+
     try {
       if (editGift) {
         await giftApi.update(editGift.id, giftForm);
@@ -125,6 +142,7 @@ export default function GiftsPage() {
         await giftApi.create(giftForm);
         toast.success("Thêm quà thành công");
       }
+
       setShowGiftModal(false);
       fetchGifts();
     } catch (err: unknown) {
@@ -137,7 +155,9 @@ export default function GiftsPage() {
 
   const handleDeleteGift = async () => {
     if (!deleteId) return;
+
     setDeleting(true);
+
     try {
       await giftApi.delete(deleteId);
       toast.success("Xóa quà thành công");
@@ -152,23 +172,33 @@ export default function GiftsPage() {
 
   const handleMemberSearch = async () => {
     if (!memberSearch.trim()) return;
-    const res = await memberApi.getAll({ keyword: memberSearch, limit: 5 });
+
+    const res = await memberApi.getAll({
+      keyword: memberSearch,
+      limit: 5,
+    });
+
     setMemberResults(res.data.data.members);
   };
 
   const handleRedeem = async () => {
     if (!selectedMember || !selectedGift) return;
+
     setRedeeming(true);
+
     try {
       await giftApi.redeem(selectedMember.id, selectedGift.id);
+
       toast.success(
         `Đổi quà "${selectedGift.giftName}" thành công cho ${selectedMember.name}`,
       );
+
       setShowRedeemModal(false);
       setSelectedMember(null);
       setSelectedGift(null);
       setMemberSearch("");
       setMemberResults([]);
+
       fetchGifts();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -199,15 +229,19 @@ export default function GiftsPage() {
         ) : undefined
       }
     >
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-dark-800 border border-white/10 rounded-xl p-1 w-fit">
+      {/* Tabs ở giữa */}
+      <div className="mx-auto flex gap-1 mb-6 bg-dark-800 border border-white/10 rounded-xl p-1 w-fit">
         {tabs
           .filter((t) => !t.adminOnly || isAdmin())
           .map((t) => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === t.key ? "bg-primary-600 text-white" : "text-gray-400 hover:text-white"}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === t.key
+                  ? "bg-primary-600 text-white"
+                  : "text-gray-400 hover:text-white"
+              }`}
             >
               {t.label}
             </button>
@@ -226,35 +260,49 @@ export default function GiftsPage() {
                     <h3 className="text-base font-semibold text-white">
                       {gift.giftName}
                     </h3>
+
                     <p className="text-xs text-gray-500">{gift.giftId}</p>
                   </div>
+
                   <span
-                    className={`badge ${gift.isActive ? "bg-emerald-900/50 text-emerald-400 border-emerald-700/50" : "bg-gray-700 text-gray-400 border-gray-600"}`}
+                    className={`badge ${
+                      gift.isActive
+                        ? "bg-emerald-900/50 text-emerald-400 border-emerald-700/50"
+                        : "bg-gray-700 text-gray-400 border-gray-600"
+                    }`}
                   >
                     {gift.isActive ? "Có sẵn" : "Ẩn"}
                   </span>
                 </div>
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Điểm đổi</span>
+
                     <span className="text-yellow-400 font-semibold">
                       ⭐ {gift.requiredPoint} pts
                     </span>
                   </div>
+
                   <div className="flex justify-between">
                     <span className="text-gray-400">Còn lại</span>
+
                     <span
-                      className={`font-semibold ${gift.quantity > 0 ? "text-white" : "text-red-400"}`}
+                      className={`font-semibold ${
+                        gift.quantity > 0 ? "text-white" : "text-red-400"
+                      }`}
                     >
                       {gift.quantity} cái
                     </span>
                   </div>
                 </div>
+
                 {gift.description && (
                   <p className="text-xs text-gray-500 mt-3 border-t border-white/10 pt-3">
                     {gift.description}
                   </p>
                 )}
+
                 {isAdmin() && (
                   <div className="flex gap-2 mt-4">
                     <button
@@ -263,6 +311,7 @@ export default function GiftsPage() {
                     >
                       ✏️ Sửa
                     </button>
+
                     <button
                       onClick={() => setDeleteId(gift.id)}
                       className="btn-danger btn-sm"
@@ -277,16 +326,17 @@ export default function GiftsPage() {
         ))}
 
       {activeTab === "redeem" && (
-        <div className="max-w-lg">
+        <div className="w-full max-w-lg mx-auto">
           <div className="card">
             <h3 className="text-base font-semibold text-white mb-4">
               Đổi quà cho thành viên
             </h3>
-            {/* Search member */}
+
             <div className="mb-4">
               <label className="block text-sm text-gray-400 mb-2">
                 1. Tìm thành viên
               </label>
+
               <div className="flex gap-2">
                 <input
                   value={memberSearch}
@@ -295,6 +345,7 @@ export default function GiftsPage() {
                   className="input-field text-sm flex-1"
                   placeholder="Nhập tên, SĐT..."
                 />
+
                 <button
                   onClick={handleMemberSearch}
                   className="btn-secondary btn-sm"
@@ -302,6 +353,7 @@ export default function GiftsPage() {
                   Tìm
                 </button>
               </div>
+
               {memberResults.length > 0 && !selectedMember && (
                 <div className="mt-2 space-y-1">
                   {memberResults.map((m) => (
@@ -316,6 +368,7 @@ export default function GiftsPage() {
                       <p className="text-sm font-medium text-white">
                         {m.name} — {m.phone}
                       </p>
+
                       <p className="text-xs text-yellow-400">
                         ⭐ {m.point} điểm
                       </p>
@@ -323,16 +376,19 @@ export default function GiftsPage() {
                   ))}
                 </div>
               )}
+
               {selectedMember && (
                 <div className="mt-2 p-3 rounded-lg bg-primary-900/30 border border-primary-500/30 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-white">
                       {selectedMember.name}
                     </p>
+
                     <p className="text-xs text-yellow-400">
                       ⭐ {selectedMember.point} điểm
                     </p>
                   </div>
+
                   <button
                     onClick={() => setSelectedMember(null)}
                     className="text-gray-400 hover:text-white text-xs"
@@ -342,11 +398,12 @@ export default function GiftsPage() {
                 </div>
               )}
             </div>
-            {/* Select gift */}
+
             <div className="mb-4">
               <label className="block text-sm text-gray-400 mb-2">
                 2. Chọn quà
               </label>
+
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {gifts
                   .filter((g) => g.isActive && g.quantity > 0)
@@ -358,16 +415,22 @@ export default function GiftsPage() {
                           selectedGift?.id === gift.id ? null : gift,
                         )
                       }
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedGift?.id === gift.id ? "bg-primary-900/30 border-primary-500/50" : "bg-dark-700 border-white/10 hover:border-white/20"}`}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        selectedGift?.id === gift.id
+                          ? "bg-primary-900/30 border-primary-500/50"
+                          : "bg-dark-700 border-white/10 hover:border-white/20"
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-white">
                           {gift.giftName}
                         </p>
+
                         <span className="text-yellow-400 text-xs font-semibold">
                           ⭐ {gift.requiredPoint} pts
                         </span>
                       </div>
+
                       <p className="text-xs text-gray-500 mt-0.5">
                         Còn: {gift.quantity} cái
                       </p>
@@ -375,6 +438,7 @@ export default function GiftsPage() {
                   ))}
               </div>
             </div>
+
             <button
               onClick={() => setShowRedeemModal(true)}
               className="btn-primary w-full"
@@ -404,20 +468,26 @@ export default function GiftsPage() {
                 ))}
               </tr>
             </thead>
+
             <tbody className="divide-y divide-white/5">
               {history.map((h) => (
                 <tr key={h.redemptionId} className="hover:bg-white/5">
                   <td className="table-cell">
                     {h.member?.name || "—"}
+
                     <p className="text-xs text-gray-500">
                       {h.member?.memberId}
                     </p>
                   </td>
+
                   <td className="table-cell">{h.gift?.giftName || "—"}</td>
+
                   <td className="table-cell">
                     <span className="text-yellow-400">⭐ {h.pointUsed}</span>
                   </td>
+
                   <td className="table-cell">{h.redeemedBy?.username}</td>
+
                   <td className="table-cell text-gray-400">
                     {formatDateTime(h.createdAt)}
                   </td>
@@ -425,6 +495,7 @@ export default function GiftsPage() {
               ))}
             </tbody>
           </table>
+
           {histPagination.totalPages > 1 && (
             <div className="flex gap-2 p-4 justify-end border-t border-white/10">
               <button
@@ -434,9 +505,11 @@ export default function GiftsPage() {
               >
                 ← Trước
               </button>
+
               <span className="text-sm text-gray-400 py-1.5 px-2">
                 Trang {histPagination.page}/{histPagination.totalPages}
               </span>
+
               <button
                 onClick={() => fetchHistory(histPagination.page + 1)}
                 disabled={histPagination.page >= histPagination.totalPages}
@@ -449,7 +522,6 @@ export default function GiftsPage() {
         </div>
       )}
 
-      {/* Gift CRUD Modal */}
       <Modal
         isOpen={showGiftModal}
         onClose={() => setShowGiftModal(false)}
@@ -461,35 +533,44 @@ export default function GiftsPage() {
               <label className="block text-xs text-gray-400 mb-1">
                 Mã quà *
               </label>
+
               <input
                 value={giftForm.giftId}
                 onChange={(e) =>
-                  setGiftForm((p) => ({ ...p, giftId: e.target.value }))
+                  setGiftForm((p) => ({
+                    ...p,
+                    giftId: e.target.value,
+                  }))
                 }
                 className="input-field text-sm"
                 disabled={!!editGift}
               />
             </div>
+
             <div>
               <label className="block text-xs text-gray-400 mb-1">
                 Tên quà *
               </label>
+
               <input
                 value={giftForm.giftName}
                 onChange={(e) =>
-                  setGiftForm((p) => ({ ...p, giftName: e.target.value }))
+                  setGiftForm((p) => ({
+                    ...p,
+                    giftName: e.target.value,
+                  }))
                 }
                 className="input-field text-sm"
               />
             </div>
           </div>
 
-          {/* Cập nhật Validation ngay trên thẻ input */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">
                 Điểm cần *
               </label>
+
               <input
                 type="number"
                 min="1"
@@ -504,16 +585,19 @@ export default function GiftsPage() {
                   }))
                 }
                 onKeyDown={(e) => {
-                  if ([".", ",", "-", "e", "E"].includes(e.key))
+                  if ([".", ",", "-", "e", "E"].includes(e.key)) {
                     e.preventDefault();
+                  }
                 }}
                 className="input-field text-sm"
               />
             </div>
+
             <div>
               <label className="block text-xs text-gray-400 mb-1">
                 Số lượng *
               </label>
+
               <input
                 type="number"
                 min="0"
@@ -528,8 +612,9 @@ export default function GiftsPage() {
                   }))
                 }
                 onKeyDown={(e) => {
-                  if ([".", ",", "-", "e", "E"].includes(e.key))
+                  if ([".", ",", "-", "e", "E"].includes(e.key)) {
                     e.preventDefault();
+                  }
                 }}
                 className="input-field text-sm"
               />
@@ -538,14 +623,19 @@ export default function GiftsPage() {
 
           <div>
             <label className="block text-xs text-gray-400 mb-1">Mô tả</label>
+
             <input
               value={giftForm.description}
               onChange={(e) =>
-                setGiftForm((p) => ({ ...p, description: e.target.value }))
+                setGiftForm((p) => ({
+                  ...p,
+                  description: e.target.value,
+                }))
               }
               className="input-field text-sm"
             />
           </div>
+
           <div className="flex gap-3 pt-2">
             <button
               onClick={() => setShowGiftModal(false)}
@@ -554,6 +644,7 @@ export default function GiftsPage() {
             >
               Hủy
             </button>
+
             <button
               onClick={handleSaveGift}
               className="btn-primary flex-1"
@@ -565,7 +656,6 @@ export default function GiftsPage() {
         </div>
       </Modal>
 
-      {/* Redeem Confirm */}
       <ConfirmDialog
         isOpen={showRedeemModal}
         onClose={() => setShowRedeemModal(false)}
