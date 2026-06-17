@@ -206,7 +206,7 @@ export const createMember = async (
   try {
     const { name, phone, birthday, mail } = req.body;
 
-    const phoneRegex = /^\d{11}$/;
+    const phoneRegex = /^\d{10}$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
