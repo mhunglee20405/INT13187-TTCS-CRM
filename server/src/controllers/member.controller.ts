@@ -228,7 +228,7 @@ export const createMember = async (
           phone &&
             !phoneRegex.test(phone) && {
               field: "phone",
-              message: "Số điện thoại phải bao gồm đúng 11 chữ số",
+              message: "Số điện thoại phải bao gồm đúng 10 chữ số",
             },
           mail &&
             !emailRegex.test(mail) && {
