@@ -158,7 +158,7 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const { name, phone, birthday, mail } = req.body;
 
-    const phoneRegex = /^\d{11}$/;
+    const phoneRegex = /^\d{10}$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!name || !phone || !phoneRegex.test(phone) || !mail || !emailRegex.test(mail)) {
@@ -168,7 +168,7 @@ export const createMember = async (req: AuthRequest, res: Response): Promise<voi
         errors: [
           !name && { field: "name", message: "Họ tên không được để trống" },
           !phone && { field: "phone", message: "Số điện thoại không được để trống" },
-          phone && !phoneRegex.test(phone) && { field: "phone", message: "Số điện thoại phải bao gồm đúng 11 chữ số" },
+          phone && !phoneRegex.test(phone) && { field: "phone", message: "Số điện thoại phải bao gồm đúng 10 chữ số" },
           mail && !emailRegex.test(mail) && { field: "mail", message: "Email không đúng định dạng", },
         ].filter(Boolean),
       });
